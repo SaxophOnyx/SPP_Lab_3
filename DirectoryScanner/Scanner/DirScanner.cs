@@ -25,8 +25,6 @@ namespace Scanner
 
         private IFileSystem _fileSystem;
 
-        private int _counter;
-
 
         public DirScanner(IFileSystem fileSystem, int threadsLimit)
         {
@@ -39,7 +37,6 @@ namespace Scanner
             _dirsToProcess = new ConcurrentQueue<DirectoryResult.Builder>();
             _semaphore = new Semaphore(ThreadsLimit, ThreadsLimit);
             _isRunning = 0;
-            _counter = 0;
         }
 
 
@@ -58,21 +55,14 @@ namespace Scanner
                 {
                     _semaphore.WaitOne();
                     ThreadPool.QueueUserWorkItem((o) => ProcessDirectory(w), _cancellationTokenSource.Token, false);
-
-                    /*
-                    Interlocked.Increment(ref _counter);
-                    if (Interlocked.CompareExchange(ref _counter, 0, 0) == 50)
-                    {
-                        Interlocked.Increment(ref _counter);
-                        Stop();
-                    }
-                    */
                 }
             }
         }
 
         private void ProcessDirectory(DirectoryResult.Builder builder)
         {
+            Thread.Sleep(100);
+
             if (!_cancellationTokenSource.IsCancellationRequested)
             {
                 EnqueueNestedDirectories(builder);
@@ -142,6 +132,8 @@ namespace Scanner
         public void Stop()
         {
             _cancellationTokenSource.Cancel();
+            _cancellationTokenSource.Dispose();
+            _cancellationTokenSource = new CancellationTokenSource();
         }
 
         public DirectoryResult? GetResult()
